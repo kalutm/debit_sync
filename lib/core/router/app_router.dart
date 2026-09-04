@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/providers/auth_providers.dart';
+import '../../features/auth/views/login_view.dart';
+import '../../features/friends/views/friends_view.dart';
+import '../../features/ledger/views/ledger_view.dart';
+import '../../features/settings/views/settings_view.dart';
 import '../widgets/scaffold_with_navbar.dart';
 
 // ── Route name constants ───────────────────────────────────────────────────────
@@ -23,7 +27,7 @@ abstract final class AppRoutes {
 /// The router listens to [authStateProvider] via [refreshListenable] so that
 /// navigation is re-evaluated automatically on every auth state change.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // A [ValueNotifier] that fires whenever the auth state stream emits.
+  // A [ChangeNotifier] that fires whenever the auth state stream emits.
   // GoRouter's [refreshListenable] accepts any [Listenable].
   final authNotifier = _AuthStateNotifier(ref);
 
@@ -42,7 +46,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && isOnLoginPage) {
-        // Already authenticated → skip login and go home.
+        // Already authenticated → skip login and land on the ledger tab.
         return AppRoutes.home;
       }
 
@@ -54,42 +58,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login,
         name: 'login',
-        // TODO(auth): Replace with LoginScreen when iterating on feature views.
-        builder: (context, state) => const _PlaceholderScreen(label: 'Login'),
+        builder: (context, state) => const LoginView(),
       ),
 
       // ── Main shell (with NavBar) ───────────────────────────────────────────
       ShellRoute(
-        builder: (context, state, child) =>
-            ScaffoldWithNavbar(child: child),
+        builder: (context, state, child) => ScaffoldWithNavbar(child: child),
         routes: [
           GoRoute(
             path: AppRoutes.home,
             name: 'home',
-            // TODO: Replace with HomeScreen.
-            builder: (context, state) =>
-                const _PlaceholderScreen(label: 'Home'),
+            // Home tab renders the Ledger as the primary landing experience
+            // until a dedicated Home/Summary screen is built in a later iteration.
+            builder: (context, state) => const LedgerView(),
           ),
           GoRoute(
             path: AppRoutes.ledger,
             name: 'ledger',
-            // TODO: Replace with LedgerScreen.
-            builder: (context, state) =>
-                const _PlaceholderScreen(label: 'Ledger'),
+            builder: (context, state) => const LedgerView(),
           ),
           GoRoute(
             path: AppRoutes.friends,
             name: 'friends',
-            // TODO: Replace with FriendsScreen.
-            builder: (context, state) =>
-                const _PlaceholderScreen(label: 'Friends'),
+            builder: (context, state) => const FriendsView(),
           ),
           GoRoute(
             path: AppRoutes.settings,
             name: 'settings',
-            // TODO: Replace with SettingsScreen.
-            builder: (context, state) =>
-                const _PlaceholderScreen(label: 'Settings'),
+            builder: (context, state) => const SettingsView(),
           ),
         ],
       ),
@@ -104,28 +100,5 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 class _AuthStateNotifier extends ChangeNotifier {
   _AuthStateNotifier(Ref ref) {
     ref.listen(authStateProvider, (_, _) => notifyListeners());
-  }
-}
-
-/// Placeholder widget used for all unimplemented routes during the scaffold
-/// phase. Will be replaced by concrete screen widgets in subsequent iterations.
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Text(
-          '$label\n(placeholder)',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
-        ),
-      ),
-    );
   }
 }

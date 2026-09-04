@@ -1,0 +1,81 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# DebitSync — .gitignore
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── SECRETS & ENVIRONMENT ─────────────────────────────────────────────────────
+# FCM service account — NEVER commit this file.
+assets/env/
+*.env
+.env
+.env.*
+env.json
+secrets.json
+
+# Firebase platform configuration files
+google-services.json
+GoogleService-Info.plist
+firebase_app_id_file.json
+
+# FlutterFire CLI generated file — contains platform API keys. Re-generate
+# locally with `flutterfire configure` after cloning.
+lib/firebase_options.dart
+
+# ── FLUTTER / DART / PUB ──────────────────────────────────────────────────────
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Generated Dart code (code-gen, json_serializable, mockito, etc.)
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# ── SYMBOLICATION & OBFUSCATION ───────────────────────────────────────────────
+app.*.symbols
+app.*.map.json
+
+# ── PLATFORM BUILD ARTEFACTS ──────────────────────────────────────────────────
+# Android
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+/android/local.properties
+/android/.gradle/
+
+# iOS
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+
+# macOS
+/macos/Pods/
+
+# ── EDITOR & SYSTEM ───────────────────────────────────────────────────────────
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code (launch configs are per-developer, keep out of repo)
+.vscode/

@@ -1,0 +1,44 @@
+name: debit_sync
+description: "Zero-trust P2P bilateral debt-tracking app — debits/paybacks require mutual acceptance before ledger commitment."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- Firebase ---
+  firebase_core: ^3.13.1
+  firebase_auth: ^5.5.4
+  cloud_firestore: ^5.6.9
+  firebase_messaging: ^15.2.5
+
+  # --- Google Sign-In ---
+  google_sign_in: ^6.2.2
+
+  # --- Client-Side FCM (HTTP v1 via googleapis_auth) ---
+  googleapis_auth: ^1.6.0
+  http: ^1.4.0
+
+  # --- State Management ---
+  flutter_riverpod: ^2.6.1
+
+  # --- Navigation ---
+  go_router: ^14.8.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    # Service account JSON + any future env files.
+    # This entire directory is gitignored — never commit secrets.
+    - assets/env/

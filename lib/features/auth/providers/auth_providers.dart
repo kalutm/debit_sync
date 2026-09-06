@@ -48,3 +48,24 @@ final currentAppUserProvider = StreamProvider<AppUser?>(
   },
   name: 'currentAppUserProvider',
 );
+
+// ── Arbitrary user profile lookup ──────────────────────────────────────────────
+
+/// Streams the [AppUser] document for any [uid], not just the signed-in user.
+///
+/// Used by [TransactionCard] to resolve counterparty names from raw UIDs stored
+/// in [TransactionModel]. The provider is `autoDispose` so the underlying
+/// Firestore listener is released as soon as the last subscriber (typically a
+/// card that has scrolled off-screen) is unmounted.
+///
+/// Usage:
+/// ```dart
+/// final profile = ref.watch(userProfileStreamProvider(counterpartyUid));
+/// final name = profile.valueOrNull?.name ?? uid;
+/// ```
+final userProfileStreamProvider =
+    StreamProvider.autoDispose.family<AppUser?, String>(
+  (ref, uid) =>
+      ref.watch(authRepositoryProvider).watchUserDocument(uid),
+  name: 'userProfileStreamProvider',
+);

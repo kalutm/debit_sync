@@ -1,3 +1,4 @@
+import 'package:debit_sync/features/ledger/widgets/payback_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/auth/providers/auth_providers.dart';
@@ -77,6 +78,14 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
   bool get _showActions =>
       _tx.status == TransactionStatus.pending &&
       _tx.requestedFrom == _currentUid;
+
+  /// True when this is an accepted debit, the current user owes the money,
+  /// and there is still an outstanding balance.
+  bool get _showPayback =>
+      _tx.type == TransactionType.debit &&
+      _tx.status == TransactionStatus.accepted &&
+      _tx.requestedFrom == _currentUid &&
+      _tx.remainingAmount > 0;
 
   /// Left-border accent color encoding transaction direction.
   ///
@@ -371,6 +380,36 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
                                       ),
                                     ],
                                   ),
+                          ),
+                        ],
+                        // ── Row 5: Pay Back (accepted debits only) ─────────
+                        if (_showPayback) ...[
+                          const SizedBox(height: 12),
+                          Divider(
+                            height: 1,
+                            color: cs.outlineVariant.withAlpha(80),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.tonal(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(24),
+                                  ),
+                                ),
+                                builder: (_) => PaybackModal(
+                                  debit: _tx,
+                                  currentUserUid: _currentUid,
+                                ),
+                              );
+                            },
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 44),
+                            ),
+                            child: const Text('Pay Back'),
                           ),
                         ],
                       ],

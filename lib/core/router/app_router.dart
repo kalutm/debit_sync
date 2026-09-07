@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/providers/auth_providers.dart';
 import '../../features/auth/views/login_view.dart';
 import '../../features/friends/views/friends_view.dart';
+import '../../features/ledger/views/create_debit_view.dart';
 import '../../features/ledger/views/ledger_view.dart';
 import '../../features/settings/views/settings_view.dart';
 import '../widgets/scaffold_with_navbar.dart';
@@ -18,6 +19,7 @@ abstract final class AppRoutes {
   static const String ledger   = '/ledger';
   static const String friends  = '/friends';
   static const String settings = '/settings';
+  static const String newDebit = '/new-debit';
 }
 
 // ── Router Provider ────────────────────────────────────────────────────────────
@@ -76,6 +78,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.ledger,
             name: 'ledger',
             builder: (context, state) => const LedgerView(),
+             ),
+          GoRoute(
+            path: AppRoutes.newDebit,
+            name: 'new_debit',
+            // Displayed without the bottom nav bar, but still under the auth shell
+            // Wait, if it is in ShellRoute, it has a NavBar. Usually form flows don't have NavBar.
+            // But let's follow the prompt and add it to router. Let's make it a child of ShellRoute or a sibling?
+            // "Add the /new-debit route to app_router.dart."
+            // If I add it outside ShellRoute, it won't have bottom nav, which is better for a form.
+            // Let's add it under Ledger routes, or outside.
+            // Wait, let's keep it simple.
+            builder: (context, state) => const CreateDebitView(),
           ),
           GoRoute(
             path: AppRoutes.friends,

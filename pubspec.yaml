@@ -29,6 +29,7 @@ dependencies:
 
   # --- Navigation ---
   go_router: ^14.8.1
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:

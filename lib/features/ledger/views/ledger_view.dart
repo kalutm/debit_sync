@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../features/auth/providers/auth_providers.dart';
 import '../models/transaction_model.dart';
 import '../providers/ledger_providers.dart';
@@ -48,25 +49,7 @@ class _LedgerViewState extends ConsumerState<LedgerView>
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   void _onFabPressed(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.construction, color: Colors.white, size: 18),
-              SizedBox(width: 10),
-              Text('New Transaction flow — coming in the next iteration!'),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+        context.push('/new-debit');
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────

@@ -17,9 +17,9 @@ final class AuthRepository {
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
     GoogleSignIn? googleSignIn,
-  })  : _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+  }) : _auth = auth ?? FirebaseAuth.instance,
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
@@ -42,10 +42,7 @@ final class AuthRepository {
     required String email,
     required String password,
   }) async {
-    return _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    return _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
   /// Creates a new account with [email] and [password], then upserts the
@@ -132,20 +129,17 @@ final class AuthRepository {
   /// [isNewUser] — when true, sets the full document (first login).
   ///               when false, only merges [name] and [email] fields to
   ///               preserve existing [tokens] and [createdAt].
-  Future<void> upsertUserDocument(
-    AppUser user, {
-    bool isNewUser = true,
-  }) async {
+  Future<void> upsertUserDocument(AppUser user, {bool isNewUser = true}) async {
     final ref = _firestore.doc(FirestorePaths.user(user.uid));
 
     if (isNewUser) {
       await ref.set(user.toMap());
     } else {
       // Merge only profile fields; do not clobber tokens or createdAt.
-      await ref.set(
-        {'name': user.name, 'email': user.email},
-        SetOptions(merge: true),
-      );
+      await ref.set({
+        'name': user.name,
+        'email': user.email,
+      }, SetOptions(merge: true));
     }
   }
 
@@ -156,9 +150,24 @@ final class AuthRepository {
     return _firestore
         .doc(FirestorePaths.user(uid))
         .snapshots()
-        .map((snap) => snap.exists && snap.data() != null
-            ? AppUser.fromJson(snap.data()!)
-            : null);
+        .map(
+          (snap) => snap.exists && snap.data() != null
+              ? AppUser.fromJson(snap.data()!)
+              : null,
+        );
+  }
+
+  /// Looks up a user's UID by their email address.
+  ///
+  /// Returns null if no user is found with that email.
+  Future<String?> findUidByEmail(String email) async {
+    final snapshot = await _firestore
+        .collection(FirestorePaths.usersCollection)
+        .where('email', isEqualTo: email.toLowerCase().trim())
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) return null;
+    return snapshot.docs.first.id;
   }
 
   /// Adds [token] to the user's FCM token list if not already present.
@@ -189,9 +198,6 @@ final class AuthRepository {
 
   /// Signs the current user out of both Firebase and Google Sign-In.
   Future<void> signOut() async {
-    await Future.wait([
-      _auth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/auth/providers/auth_providers.dart';
 import 'client_side_fcm_service.dart';
+import 'fcm_setup_service.dart';
 import 'notification_service.dart';
 
 /// Provides the concrete [NotificationService] implementation.
@@ -19,4 +20,16 @@ final notificationServiceProvider = Provider<NotificationService>(
     return service;
   },
   name: 'notificationServiceProvider',
+);
+
+/// Provides the [FcmSetupService] responsible for permission requests,
+/// device token registration, and foreground message display.
+///
+/// Scoped to the [ProviderScope] lifetime — a single instance is shared
+/// across the app and manages its own internal subscription lifecycle.
+final fcmSetupServiceProvider = Provider<FcmSetupService>(
+  (ref) => FcmSetupService(
+    authRepository: ref.watch(authRepositoryProvider),
+  ),
+  name: 'fcmSetupServiceProvider',
 );

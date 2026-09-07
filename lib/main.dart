@@ -1,9 +1,25 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';
+
+/// Background message handler — runs in a **separate isolate** when the app is
+/// terminated or in the background. Must be a top-level function.
+///
+/// No UI work is safe here. Heavy processing should be deferred and picked up
+/// the next time the app opens.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Firebase must be re-initialized in the background isolate.
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  debugPrint(
+    '[FCM Background] id=${message.messageId} '
+    'title=${message.notification?.title}',
+  );
+}
 
 /// Application entry point.
 ///
@@ -20,6 +36,10 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Register the background handler before runApp so it is available
+  // as soon as the background isolate is spawned.
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(
     const ProviderScope(

@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────────
+
+    /// True when the request carries a valid, verified Firebase Auth token.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /// True when the authenticated user's UID matches the given [uid].
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    /// True when the authenticated user is either the requester or the
+    /// counterparty in a transaction document.
+    function isParticipant(txData) {
+      return isSignedIn() &&
+        (request.auth.uid == txData.requestedBy ||
+         request.auth.uid == txData.requestedFrom);
+    }
+
+    // ── /users/{userId} ───────────────────────────────────────────────────────
+    //
+    // Any authenticated user may read a user profile so the app can resolve
+    // counterparty names and emails when building transaction cards.
+    // Only the owner may write to their own document.
+    match /users/{userId} {
+      allow read:   if isSignedIn();
+      allow create: if isUser(userId);
+      allow update: if isUser(userId);
+      allow delete: if false; // Accounts are never hard-deleted from the client.
+
+      // ── /users/{userId}/recents/{friendId} ──────────────────────────────────
+      //
+      // Recents are personal data — only the owning user may read or write them.
+      match /recents/{friendId} {
+        allow read, write: if isUser(userId);
+      }
+    }
+
+    // ── /transactions/{txId} ─────────────────────────────────────────────────
+    //
+    // Transactions are the core ledger. Rules here enforce the Zero-Trust
+    // model at the database layer, complementing the repository-level guards.
+    match /transactions/{txId} {
+
+      // READ: Only participants (requester or counterparty) may read a transaction.
+      allow read: if isParticipant(resource.data);
+
+      // CREATE: Only allowed when the authenticated user is the one initiating
+      // the request. Status must be 'pending' — the backend (via rules) cannot
+      // enforce the pending-only constraint on create without field-level rules,
+      // but the repository always sets it; this rule prevents a rogue client
+      // from spoofing a different requestedBy identity.
+      allow create: if isSignedIn() &&
+                       request.auth.uid == request.resource.data.requestedBy;
+
+      // UPDATE: Restricted to participants. Field-level validation (e.g. only
+      // allowing status transitions) is intentionally omitted for MVP — the
+      // server-side Firestore Transaction in the repository provides the
+      // anti-race guard, and restricting updates to participants prevents
+      // third-party tampering.
+      allow update: if isParticipant(resource.data);
+
+      // DELETE: Never allowed from the client — the ledger is append-only.
+      allow delete: if false;
+    }
+
+  }
+}

@@ -96,6 +96,9 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
   /// | Payback — current user is paying           | tertiary  |
   /// | Payback — current user is receiving payment| primary   |
   Color _accentColor(ColorScheme cs) {
+    if (_tx.type == TransactionType.netSettlement) {
+      return cs.secondary;
+    }
     if (_tx.type == TransactionType.debit) {
       return _tx.requestedFrom == _currentUid ? cs.error : cs.primary;
     }
@@ -486,7 +489,7 @@ class _TypeBadge extends StatelessWidget {
     final (label, icon) = switch (type) {
       TransactionType.debit => ('Debit', Icons.arrow_upward_rounded),
       TransactionType.payback => ('Payback', Icons.arrow_downward_rounded),
-      TransactionType.netSettlement => ('Settlement', Icons.swap_horiz_rounded),
+      TransactionType.netSettlement => ('Settlement', Icons.handshake_rounded),
     };
     return Row(
       mainAxisSize: MainAxisSize.min,

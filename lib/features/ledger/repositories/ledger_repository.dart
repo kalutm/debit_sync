@@ -4,7 +4,6 @@ import '../../../core/constants/firestore_paths.dart';
 import '../../friends/models/recent_friend.dart';
 import '../../friends/repositories/friends_repository.dart';
 import '../models/transaction_model.dart';
-import '../models/transaction_model.dart';
 
 /// Custom exception thrown when a domain constraint is violated.
 final class LedgerConstraintException implements Exception {
@@ -178,6 +177,28 @@ final class LedgerRepository {
     } catch (_) {
       // Best effort; don't fail the transaction if recents update fails.
     }
+  }
+
+   /// Creates a net settlement request.
+  /// 
+  /// The transaction is written with [TransactionStatus.pending].
+  Future<void> createNetSettlementRequest(TransactionModel transaction) async {
+    _validateAmount(transaction.amount);
+    if (transaction.type != TransactionType.netSettlement) {
+      throw const LedgerConstraintException(
+        'createNetSettlementRequest only accepts TransactionType.netSettlement.',
+      );
+    }
+    final pending = transaction.copyWith(
+      status: TransactionStatus.pending,
+      remainingAmount: 0,
+    );
+    await _txCollection.doc(pending.id).set(pending.toMap());
+    // Update recents
+    await _updateRecentFriend(
+      ownerUid: pending.requestedBy,
+      counterpartyUid: pending.requestedFrom,
+    );
   }
 
   /// Advances a transaction's status to [TransactionStatus.accepted].

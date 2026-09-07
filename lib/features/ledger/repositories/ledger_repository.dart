@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/firestore_paths.dart';
+import '../../../services/notification_service.dart';
+import '../../auth/repositories/auth_repository.dart';
 import '../../friends/models/recent_friend.dart';
 import '../../friends/repositories/friends_repository.dart';
 import '../models/transaction_model.dart';
@@ -36,10 +38,14 @@ final class LedgerRepository {
   LedgerRepository({
     FirebaseFirestore? firestore,
     required this.friendsRepository,
+    required this.authRepository,
+    required this.notificationService,
   }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
   final FriendsRepository friendsRepository;
+  final AuthRepository authRepository;
+  final NotificationService notificationService;
 
   CollectionReference<Map<String, dynamic>> get _txCollection =>
       _firestore.collection(FirestorePaths.transactionsCollection);
@@ -54,7 +60,10 @@ final class LedgerRepository {
   /// Throws [LedgerConstraintException] if:
   /// - [transaction.amount] is not a positive integer.
   /// - [transaction.type] is not [TransactionType.debit].
-  Future<void> createDebitRequest(TransactionModel transaction) async {
+  Future<void> createDebitRequest(
+    TransactionModel transaction, {
+    required String actorName,
+  }) async {
     _validateAmount(transaction.amount);
 
     if (transaction.type != TransactionType.debit) {
@@ -75,6 +84,13 @@ final class LedgerRepository {
     await _updateRecentFriend(
       ownerUid: pending.requestedBy,
       counterpartyUid: pending.requestedFrom,
+    );
+
+    // Notify the counterparty
+    await _dispatchNotification(
+      recipientUid: pending.requestedFrom,
+      title: 'New Debit Request',
+      body: '$actorName requested ${_formatAmount(pending.amount)}.',
     );
   }
 
@@ -97,7 +113,10 @@ final class LedgerRepository {
   ///   [TransactionStatus.rejected].
   /// - [transaction.amount] exceeds the debit's [remainingAmount].
   /// - [transaction.amount] is not a positive integer.
-  Future<void> createPaybackRequest(TransactionModel transaction) async {
+  Future<void> createPaybackRequest(
+    TransactionModel transaction, {
+    required String actorName,
+  }) async {
     _validateAmount(transaction.amount);
 
     final linkedDebitId = transaction.linkedDebitId;
@@ -154,6 +173,14 @@ final class LedgerRepository {
       ownerUid: transaction.requestedBy,
       counterpartyUid: transaction.requestedFrom,
     );
+
+    // Notify the counterparty
+    await _dispatchNotification(
+      recipientUid: transaction.requestedFrom,
+      title: 'Payback Received',
+      body:
+          '$actorName sent you a payback of ${_formatAmount(transaction.amount)}. Review and accept.',
+    );
   }
 
   Future<void> _updateRecentFriend({
@@ -179,10 +206,13 @@ final class LedgerRepository {
     }
   }
 
-   /// Creates a net settlement request.
-  /// 
+  /// Creates a net settlement request.
+  ///
   /// The transaction is written with [TransactionStatus.pending].
-  Future<void> createNetSettlementRequest(TransactionModel transaction) async {
+  Future<void> createNetSettlementRequest(
+    TransactionModel transaction, {
+    required String actorName,
+  }) async {
     _validateAmount(transaction.amount);
     if (transaction.type != TransactionType.netSettlement) {
       throw const LedgerConstraintException(
@@ -194,10 +224,18 @@ final class LedgerRepository {
       remainingAmount: 0,
     );
     await _txCollection.doc(pending.id).set(pending.toMap());
+
     // Update recents
     await _updateRecentFriend(
       ownerUid: pending.requestedBy,
       counterpartyUid: pending.requestedFrom,
+    );
+
+    // Notify the counterparty
+    await _dispatchNotification(
+      recipientUid: pending.requestedFrom,
+      title: 'Settlement Request',
+      body: '$actorName wants to settle up ${_formatAmount(pending.amount)}.',
     );
   }
 
@@ -208,8 +246,9 @@ final class LedgerRepository {
   ///
   /// Throws [LedgerConstraintException] if the transaction is not
   /// [TransactionStatus.pending].
-  Future<void> acceptTransaction(String txId) async {
+  Future<void> acceptTransaction(String txId, {required String actorName}) async {
     final txRef = _txCollection.doc(txId);
+    late TransactionModel acceptedTx;
 
     await _firestore.runTransaction((firestoreTx) async {
       final snap = await firestoreTx.get(txRef);
@@ -225,6 +264,9 @@ final class LedgerRepository {
         );
       }
 
+      // Capture the tx for use in the notification hook below.
+      acceptedTx = tx;
+
       // Accept the transaction itself.
       firestoreTx.update(txRef, {'status': TransactionStatus.accepted.value});
 
@@ -236,14 +278,23 @@ final class LedgerRepository {
         });
       }
     });
+
+    // Notify the original requester that their request was accepted.
+    final typeLabel = _typeLabel(acceptedTx.type);
+    await _dispatchNotification(
+      recipientUid: acceptedTx.requestedBy,
+      title: 'Request Accepted',
+      body: '$actorName accepted your $typeLabel.',
+    );
   }
 
   /// Advances a transaction's status to [TransactionStatus.rejected].
   ///
   /// Throws [LedgerConstraintException] if the transaction is not
   /// [TransactionStatus.pending].
-  Future<void> rejectTransaction(String txId) async {
+  Future<void> rejectTransaction(String txId, {required String actorName}) async {
     final txRef = _txCollection.doc(txId);
+    late TransactionModel rejectedTx;
 
     await _firestore.runTransaction((firestoreTx) async {
       final snap = await firestoreTx.get(txRef);
@@ -259,8 +310,19 @@ final class LedgerRepository {
         );
       }
 
+      // Capture for notification hook.
+      rejectedTx = tx;
+
       firestoreTx.update(txRef, {'status': TransactionStatus.rejected.value});
     });
+
+    // Notify the original requester that their request was rejected.
+    final typeLabel = _typeLabel(rejectedTx.type);
+    await _dispatchNotification(
+      recipientUid: rejectedTx.requestedBy,
+      title: 'Request Rejected',
+      body: '$actorName rejected your $typeLabel.',
+    );
   }
 
   // ── Streams ────────────────────────────────────────────────────────────────
@@ -338,6 +400,50 @@ final class LedgerRepository {
       throw LedgerConstraintException(
         'Amount must be a positive integer (cents). Got: $amount',
       );
+    }
+  }
+
+  /// Formats an integer cent value as a human-readable currency string.
+  /// e.g. 2550 → "\$25.50"
+  String _formatAmount(int cents) {
+    final value = cents / 100;
+    return '\$${value.toStringAsFixed(2)}';
+  }
+
+  /// Returns a short human-readable label for [type].
+  String _typeLabel(TransactionType type) => switch (type) {
+    TransactionType.debit         => 'debit',
+    TransactionType.payback       => 'payback',
+    TransactionType.netSettlement => 'settlement',
+  };
+
+  /// Fetches [recipientUid]'s registered FCM tokens, then fires a notification
+  /// to each one.
+  ///
+  /// Failures are swallowed and printed — a notification error MUST NOT revert
+  /// or obscure a successful Firestore ledger write.
+  Future<void> _dispatchNotification({
+    required String recipientUid,
+    required String title,
+    required String body,
+  }) async {
+    try {
+      final tokens = await authRepository.getUserTokens(recipientUid);
+      for (final token in tokens) {
+        try {
+          await notificationService.sendNotification(
+            targetToken: token,
+            title: title,
+            body: body,
+          );
+        } catch (e) {
+          // Per-token failure: log and continue to remaining tokens.
+          print('[LedgerRepository] FCM send failed for token $token: $e');
+        }
+      }
+    } catch (e) {
+      // Token-fetch failure: log but do not rethrow.
+      print('[LedgerRepository] Failed to fetch tokens for $recipientUid: $e');
     }
   }
 }

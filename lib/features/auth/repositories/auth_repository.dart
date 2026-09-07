@@ -194,6 +194,18 @@ final class AuthRepository {
     });
   }
 
+  /// Fetches the FCM device tokens registered for [uid].
+  ///
+  /// Returns an empty list if the document does not exist or has no tokens.
+  Future<List<String>> getUserTokens(String uid) async {
+    final snap = await _firestore.doc(FirestorePaths.user(uid)).get();
+    if (!snap.exists || snap.data() == null) return [];
+    final data = snap.data()!;
+    final rawTokens = data['tokens'];
+    if (rawTokens is! List) return [];
+    return rawTokens.whereType<String>().toList();
+  }
+
   // ── Sign Out ───────────────────────────────────────────────────────────────
 
   /// Signs the current user out of both Firebase and Google Sign-In.

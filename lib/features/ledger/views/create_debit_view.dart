@@ -85,7 +85,10 @@ class _CreateDebitViewState extends ConsumerState<CreateDebitView> {
         notes: _notesController.text.trim(),
       );
       // 4. Submit to repository
-      await ref.read(ledgerRepositoryProvider).createDebitRequest(tx);
+      await ref.read(ledgerRepositoryProvider).createDebitRequest(
+        tx,
+        actorName: currentUser.name,
+      );
       if (mounted) {
         context.pop(); // Return to Ledger View
         ScaffoldMessenger.of(

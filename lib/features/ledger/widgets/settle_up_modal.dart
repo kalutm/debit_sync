@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+
+import '../../auth/providers/auth_providers.dart';
 import '../../friends/models/recent_friend.dart';
 import '../models/transaction_model.dart';
 import '../providers/ledger_providers.dart';
@@ -35,7 +37,11 @@ class _SettleUpModalState extends ConsumerState<SettleUpModal> {
         remainingAmount: 0,
         createdAt: DateTime.now(),
       );
-      await ref.read(ledgerRepositoryProvider).createNetSettlementRequest(tx);
+      await ref.read(ledgerRepositoryProvider).createNetSettlementRequest(
+        tx,
+        actorName:
+            ref.read(currentAppUserProvider).valueOrNull?.name ?? 'Someone',
+      );
       if (mounted) {
         context.pop();
         ScaffoldMessenger.of(context).showSnackBar(

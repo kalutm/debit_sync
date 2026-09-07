@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../models/transaction_model.dart';
 import '../providers/ledger_providers.dart';
 
@@ -51,7 +52,11 @@ class _PaybackModalState extends ConsumerState<PaybackModal> {
         remainingAmount: 0, // Paybacks don't have remaining amounts
         createdAt: DateTime.now(),
       );
-      await ref.read(ledgerRepositoryProvider).createPaybackRequest(paybackTx);
+      await ref.read(ledgerRepositoryProvider).createPaybackRequest(
+        paybackTx,
+        actorName:
+            ref.read(currentAppUserProvider).valueOrNull?.name ?? 'Someone',
+      );
       if (mounted) {
         context.pop();
         ScaffoldMessenger.of(

@@ -1,16 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/providers/auth_providers.dart';
-
-import '../models/transaction_model.dart';
 import '../../friends/providers/friends_providers.dart';
+import '../../../services/services_providers.dart';
+import '../models/transaction_model.dart';
 import '../repositories/ledger_repository.dart';
 
 // ── Repository ─────────────────────────────────────────────────────────────────
 
 final ledgerRepositoryProvider = Provider<LedgerRepository>(
-  (ref) =>
-      LedgerRepository(friendsRepository: ref.watch(friendsRepositoryProvider)),
+  (ref) => LedgerRepository(
+    friendsRepository: ref.watch(friendsRepositoryProvider),
+    authRepository: ref.watch(authRepositoryProvider),
+    notificationService: ref.watch(notificationServiceProvider),
+  ),
   name: 'ledgerRepositoryProvider',
 );
 

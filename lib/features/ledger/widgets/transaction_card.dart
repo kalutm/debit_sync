@@ -106,15 +106,28 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
     return _tx.requestedBy == _currentUid ? cs.tertiary : cs.primary;
   }
 
-  // ── Actions ────────────────────────────────────────────────────────────────
-  Future<void> _accept() => _runAction(
-    () => ref.read(ledgerRepositoryProvider).acceptTransaction(_tx.id),
-    successMessage: 'Transaction accepted.',
-  );
-  Future<void> _reject() => _runAction(
-    () => ref.read(ledgerRepositoryProvider).rejectTransaction(_tx.id),
-    successMessage: 'Transaction rejected.',
-  );
+  // ── Actions ──────────────────────────────────────────────────────
+  Future<void> _accept() {
+    final actorName =
+        ref.read(currentAppUserProvider).valueOrNull?.name ?? 'Someone';
+    return _runAction(
+      () => ref
+          .read(ledgerRepositoryProvider)
+          .acceptTransaction(_tx.id, actorName: actorName),
+      successMessage: 'Transaction accepted.',
+    );
+  }
+
+  Future<void> _reject() {
+    final actorName =
+        ref.read(currentAppUserProvider).valueOrNull?.name ?? 'Someone';
+    return _runAction(
+      () => ref
+          .read(ledgerRepositoryProvider)
+          .rejectTransaction(_tx.id, actorName: actorName),
+      successMessage: 'Transaction rejected.',
+    );
+  }
 
   /// Runs [action], manages the per-card loading spinner, and surfaces errors
   /// as floating SnackBars without disrupting the rest of the list.

@@ -13,7 +13,9 @@ import '../providers/ledger_providers.dart';
 /// Looks up the counterparty UID by email.
 /// Constructs a [TransactionModel] and submits it to [LedgerRepository].
 class CreateDebitView extends ConsumerStatefulWidget {
-  const CreateDebitView({super.key});
+  const CreateDebitView({super.key, this.initialEmail});
+
+  final String? initialEmail;
   @override
   ConsumerState<CreateDebitView> createState() => _CreateDebitViewState();
 }
@@ -24,6 +26,15 @@ class _CreateDebitViewState extends ConsumerState<CreateDebitView> {
   final _emailController = TextEditingController();
   final _notesController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialEmail != null) {
+      _emailController.text = widget.initialEmail!;
+    }
+  }
+
   @override
   void dispose() {
     _amountController.dispose();

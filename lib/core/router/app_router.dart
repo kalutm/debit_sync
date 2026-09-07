@@ -14,10 +14,10 @@ import '../widgets/scaffold_with_navbar.dart';
 
 /// Named route constants to avoid magic strings at call sites.
 abstract final class AppRoutes {
-  static const String login    = '/login';
-  static const String home     = '/home';
-  static const String ledger   = '/ledger';
-  static const String friends  = '/friends';
+  static const String login = '/login';
+  static const String home = '/home';
+  static const String ledger = '/ledger';
+  static const String friends = '/friends';
   static const String settings = '/settings';
   static const String newDebit = '/new-debit';
 }
@@ -78,7 +78,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.ledger,
             name: 'ledger',
             builder: (context, state) => const LedgerView(),
-             ),
+          ),
           GoRoute(
             path: AppRoutes.newDebit,
             name: 'new_debit',
@@ -89,7 +89,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             // If I add it outside ShellRoute, it won't have bottom nav, which is better for a form.
             // Let's add it under Ledger routes, or outside.
             // Wait, let's keep it simple.
-            builder: (context, state) => const CreateDebitView(),
+            builder: (context, state) => CreateDebitView(
+              initialEmail: state.uri.queryParameters['email'],
+            ),
           ),
           GoRoute(
             path: AppRoutes.friends,

@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/constants/firestore_paths.dart';
+import '../../friends/models/recent_friend.dart';
+import '../../friends/repositories/friends_repository.dart';
+import '../models/transaction_model.dart';
 import '../models/transaction_model.dart';
 
 /// Custom exception thrown when a domain constraint is violated.
@@ -31,10 +34,13 @@ final class LedgerConstraintException implements Exception {
 ///    advance the status to [TransactionStatus.accepted] or
 ///    [TransactionStatus.rejected] via [acceptTransaction]/[rejectTransaction].
 final class LedgerRepository {
-  LedgerRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  LedgerRepository({
+    FirebaseFirestore? firestore,
+    required this.friendsRepository,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+  final FriendsRepository friendsRepository;
 
   CollectionReference<Map<String, dynamic>> get _txCollection =>
       _firestore.collection(FirestorePaths.transactionsCollection);
@@ -65,6 +71,12 @@ final class LedgerRepository {
     );
 
     await _txCollection.doc(pending.id).set(pending.toMap());
+
+    // Update recents for the requester
+    await _updateRecentFriend(
+      ownerUid: pending.requestedBy,
+      counterpartyUid: pending.requestedFrom,
+    );
   }
 
   /// Creates a payback request against an existing accepted debit.
@@ -134,11 +146,38 @@ final class LedgerRepository {
       }
 
       // ── Step 4: Atomic write ───────────────────────────────────────────────
-      final pending = transaction.copyWith(
-        status: TransactionStatus.pending,
-      );
+      final pending = transaction.copyWith(status: TransactionStatus.pending);
       firestoreTx.set(paybackRef, pending.toMap());
     });
+
+    // Update recents outside the transaction block to keep the atomic unit fast
+    await _updateRecentFriend(
+      ownerUid: transaction.requestedBy,
+      counterpartyUid: transaction.requestedFrom,
+    );
+  }
+
+  Future<void> _updateRecentFriend({
+    required String ownerUid,
+    required String counterpartyUid,
+  }) async {
+    try {
+      final snap = await _firestore
+          .doc(FirestorePaths.user(counterpartyUid))
+          .get();
+      if (!snap.exists || snap.data() == null) return;
+
+      final data = snap.data()!;
+      final recent = RecentFriend(
+        friendUid: counterpartyUid,
+        name: data['name'] as String? ?? 'Unknown',
+        email: data['email'] as String? ?? '',
+        lastInteractedAt: DateTime.now(),
+      );
+      await friendsRepository.upsertRecent(ownerUid, recent);
+    } catch (_) {
+      // Best effort; don't fail the transaction if recents update fails.
+    }
   }
 
   /// Advances a transaction's status to [TransactionStatus.accepted].
@@ -154,9 +193,7 @@ final class LedgerRepository {
     await _firestore.runTransaction((firestoreTx) async {
       final snap = await firestoreTx.get(txRef);
       if (!snap.exists || snap.data() == null) {
-        throw LedgerConstraintException(
-          'Transaction $txId not found.',
-        );
+        throw LedgerConstraintException('Transaction $txId not found.');
       }
 
       final tx = TransactionModel.fromJson(snap.data()!);
@@ -171,8 +208,7 @@ final class LedgerRepository {
       firestoreTx.update(txRef, {'status': TransactionStatus.accepted.value});
 
       // If this is a payback, update the parent debit's remainingAmount.
-      if (tx.type == TransactionType.payback &&
-          tx.linkedDebitId != null) {
+      if (tx.type == TransactionType.payback && tx.linkedDebitId != null) {
         final debitRef = _txCollection.doc(tx.linkedDebitId);
         firestoreTx.update(debitRef, {
           'remainingAmount': FieldValue.increment(-tx.amount),
@@ -223,13 +259,19 @@ final class LedgerRepository {
         .where('requestedBy', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) => TransactionModel.fromJson(d.data())).toList());
+        .map(
+          (s) =>
+              s.docs.map((d) => TransactionModel.fromJson(d.data())).toList(),
+        );
 
     final fromStream = _txCollection
         .where('requestedFrom', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) => TransactionModel.fromJson(d.data())).toList());
+        .map(
+          (s) =>
+              s.docs.map((d) => TransactionModel.fromJson(d.data())).toList(),
+        );
 
     // Combine both streams, merge deduplicating by ID, and re-sort.
     return byStream.asyncExpand((byList) {

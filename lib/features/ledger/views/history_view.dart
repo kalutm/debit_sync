@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/providers/auth_providers.dart';
-import '../../friends/providers/friends_providers.dart';
 import '../models/transaction_model.dart';
 import '../providers/ledger_providers.dart';
 import '../widgets/transaction_card.dart';
+
+enum _FilterOption { all, lended, borrowed, payback }
 
 class HistoryView extends ConsumerStatefulWidget {
   const HistoryView({super.key});
@@ -17,7 +18,7 @@ class HistoryView extends ConsumerStatefulWidget {
 class _HistoryViewState extends ConsumerState<HistoryView> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
-  TransactionType? _selectedType;
+  _FilterOption _selectedFilter = _FilterOption.all;
 
   @override
   void dispose() {
@@ -34,9 +35,6 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
     }
     final uid = currentUser.uid;
     final historyAsync = ref.watch(userTransactionsStreamProvider(uid));
-    final recentsAsync = ref.watch(recentsStreamProvider(uid));
-    final recents = recentsAsync.valueOrNull ?? [];
-    final nameMap = {for (final r in recents) r.friendUid: r.name};
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +49,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search by name...',
+                    hintText: 'Search notes or amount...',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
@@ -80,26 +78,26 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
                     children: [
                       _FilterChip(
                         label: 'All',
-                        isSelected: _selectedType == null,
-                        onSelected: (_) => setState(() => _selectedType = null),
+                        isSelected: _selectedFilter == _FilterOption.all,
+                        onSelected: (_) => setState(() => _selectedFilter = _FilterOption.all),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
-                        label: 'Debits',
-                        isSelected: _selectedType == TransactionType.debit,
-                        onSelected: (_) => setState(() => _selectedType = TransactionType.debit),
+                        label: 'Lended',
+                        isSelected: _selectedFilter == _FilterOption.lended,
+                        onSelected: (_) => setState(() => _selectedFilter = _FilterOption.lended),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
-                        label: 'Paybacks',
-                        isSelected: _selectedType == TransactionType.payback,
-                        onSelected: (_) => setState(() => _selectedType = TransactionType.payback),
+                        label: 'Borrowed',
+                        isSelected: _selectedFilter == _FilterOption.borrowed,
+                        onSelected: (_) => setState(() => _selectedFilter = _FilterOption.borrowed),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
-                        label: 'Settlements',
-                        isSelected: _selectedType == TransactionType.netSettlement,
-                        onSelected: (_) => setState(() => _selectedType = TransactionType.netSettlement),
+                        label: 'Payback',
+                        isSelected: _selectedFilter == _FilterOption.payback,
+                        onSelected: (_) => setState(() => _selectedFilter = _FilterOption.payback),
                       ),
                     ],
                   ),
@@ -114,12 +112,37 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
         error: (e, _) => Center(child: Text(e.toString())),
         data: (transactions) {
           final filtered = transactions.where((tx) {
-            final matchesType = _selectedType == null || tx.type == _selectedType;
-            final counterpartyUid = tx.requestedBy == uid ? tx.requestedFrom : tx.requestedBy;
-            final name = nameMap[counterpartyUid] ?? 'Unknown';
-            final matchesSearch = _searchQuery.isEmpty ||
-                name.toLowerCase().contains(_searchQuery);
-            return matchesType && matchesSearch;
+            if (tx.type == TransactionType.netSettlement) return false;
+
+            bool matchesFilter = false;
+            switch (_selectedFilter) {
+              case _FilterOption.all:
+                matchesFilter = true;
+                break;
+              case _FilterOption.lended:
+                matchesFilter = tx.type == TransactionType.debit && tx.requestedFrom == uid;
+                break;
+              case _FilterOption.borrowed:
+                matchesFilter = tx.type == TransactionType.debit && tx.requestedBy == uid;
+                break;
+              case _FilterOption.payback:
+                matchesFilter = tx.type == TransactionType.payback;
+                break;
+            }
+            
+            if (!matchesFilter) return false;
+
+            if (_searchQuery.isNotEmpty) {
+              final amountStr = (tx.amount / 100).toStringAsFixed(2);
+              final rawAmountStr = tx.amount.toString();
+              
+              final notesMatch = tx.notes?.toLowerCase().contains(_searchQuery) ?? false;
+              final amountMatch = amountStr.contains(_searchQuery) || rawAmountStr.contains(_searchQuery);
+              
+              if (!notesMatch && !amountMatch) return false;
+            }
+
+            return true;
           }).toList();
 
           if (filtered.isEmpty) {

@@ -47,7 +47,7 @@ class _PaybackModalState extends ConsumerState<PaybackModal> {
         status: TransactionStatus.pending,
         linkedDebitId: widget.debit.id,
         requestedBy: widget.currentUserUid,
-        requestedFrom: widget.debit.requestedBy, // The original lender
+        requestedFrom: widget.debit.requestedFrom, // The original lender
         amount: amountCents,
         remainingAmount: 0, // Paybacks don't have remaining amounts
         createdAt: DateTime.now(),
@@ -98,7 +98,7 @@ class _PaybackModalState extends ConsumerState<PaybackModal> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Pay Me Back',
+              'Pay Back',
               style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),

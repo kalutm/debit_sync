@@ -81,16 +81,16 @@ final netBalanceProvider = StreamProvider.family<int, String>((
       if (tx.type == TransactionType.netSettlement) {
         balance = 0;
       } else if (tx.type == TransactionType.debit) {
-        if (tx.requestedBy == currentUser.uid) {
-          balance += tx.amount; // They owe me
+        if (tx.requestedFrom == currentUser.uid) {
+          balance += tx.amount; // I am the Lender -> + amount
         } else {
-          balance -= tx.amount; // I owe them
+          balance -= tx.amount; // I am the Borrower -> - amount
         }
       } else if (tx.type == TransactionType.payback) {
         if (tx.requestedBy == currentUser.uid) {
-          balance += tx.amount; // I paid them back (my balance increases)
+          balance += tx.amount; // I am the Borrower paying back -> + amount
         } else {
-          balance -= tx.amount; // They paid me back (my balance decreases)
+          balance -= tx.amount; // I am the Lender receiving -> - amount
         }
       }
     }

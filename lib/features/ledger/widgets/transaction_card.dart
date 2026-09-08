@@ -85,12 +85,12 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
       _tx.status == TransactionStatus.pending &&
       _tx.requestedBy == _currentUid;
 
-  /// True when this is an accepted debit, the current user owes the money,
-  /// and there is still an outstanding balance.
+  /// True when this is an accepted debit, the current user is the Borrower
+  /// (requestedBy), and there is still an outstanding balance to pay back.
   bool get _showPayback =>
       _tx.type == TransactionType.debit &&
       _tx.status == TransactionStatus.accepted &&
-      _tx.requestedFrom == _currentUid &&
+      _tx.requestedBy == _currentUid &&
       _tx.remainingAmount > 0;
 
   /// Left-border accent color encoding transaction direction.
@@ -106,7 +106,7 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
       return cs.secondary;
     }
     if (_tx.type == TransactionType.debit) {
-      return _tx.requestedFrom == _currentUid ? cs.error : cs.primary;
+      return _tx.requestedFrom == _currentUid ? cs.primary : cs.error;
     }
     // Payback
     return _tx.requestedBy == _currentUid ? cs.tertiary : cs.primary;
@@ -286,13 +286,13 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
                             _tx.type == TransactionType.debit) ...[
                           Text(
                             _tx.requestedFrom == _currentUid
-                                ? 'I owe $counterpartyName ${_formatAmount(_tx.amount)}'
-                                : '$counterpartyName owes me ${_formatAmount(_tx.amount)}',
+                                ? '$counterpartyName owes me ${_formatAmount(_tx.amount)}'
+                                : 'I owe $counterpartyName ${_formatAmount(_tx.amount)}',
                             style: tt.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: _tx.requestedFrom == _currentUid
-                                  ? cs.error
-                                  : cs.primary,
+                                  ? cs.primary
+                                  : cs.error,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -320,7 +320,11 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
                               ),
                             ],
                             const Spacer(),
-                            _TypeBadge(type: _tx.type),
+                            _TypeBadge(
+                              type: _tx.type,
+                              currentUserUid: _currentUid,
+                              requestedByUid: _tx.requestedBy,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               _formatDate(_tx.createdAt),
@@ -489,7 +493,7 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(double.infinity, 44),
                             ),
-                            child: const Text('Pay Me Back'),
+                            child: const Text('Pay Back'),
                           ),
                         ],
                       ],
@@ -553,21 +557,34 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-// ── Type Badge ─────────────────────────────────────────────────────────────────
-/// A compact label + icon indicating whether this is a [TransactionType.debit],
 /// [TransactionType.payback], or [TransactionType.netSettlement].
+///
+/// For [TransactionType.debit]:
+/// - Lender (requestedBy)     → Arrow Up   + "Lended"   (money left my pocket)
+/// - Borrower (requestedFrom) → Arrow Down + "Borrowed" (money came to me)
 class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({required this.type});
+  const _TypeBadge({
+    required this.type,
+    required this.currentUserUid,
+    required this.requestedByUid,
+  });
+
   final TransactionType type;
+  final String currentUserUid;
+  final String requestedByUid;
 
   @override
   Widget build(BuildContext context) {
     final outline = Theme.of(context).colorScheme.outline;
+
     final (label, icon) = switch (type) {
-      TransactionType.debit => ('Debit', Icons.arrow_upward_rounded),
-      TransactionType.payback => ('Payback', Icons.arrow_downward_rounded),
+      TransactionType.debit => currentUserUid == requestedByUid
+          ? ('Borrowed', Icons.arrow_downward_rounded) // Borrower: money in
+          : ('Lended', Icons.arrow_upward_rounded),    // Lender: money out
+      TransactionType.payback       => ('Payback', Icons.arrow_downward_rounded),
       TransactionType.netSettlement => ('Settlement', Icons.handshake_rounded),
     };
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

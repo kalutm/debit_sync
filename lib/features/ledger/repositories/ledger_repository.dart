@@ -279,6 +279,12 @@ final class LedgerRepository {
       }
     });
 
+    // Save the counterparty to the acceptor's recent friends list.
+    await _updateRecentFriend(
+      ownerUid: acceptedTx.requestedFrom,
+      counterpartyUid: acceptedTx.requestedBy,
+    );
+
     // Notify the original requester that their request was accepted.
     final typeLabel = _typeLabel(acceptedTx.type);
     await _dispatchNotification(
@@ -404,10 +410,10 @@ final class LedgerRepository {
   }
 
   /// Formats an integer cent value as a human-readable currency string.
-  /// e.g. 2550 → "\$25.50"
+  /// e.g. 2550 → "ETB 25.50"
   String _formatAmount(int cents) {
     final value = cents / 100;
-    return '\$${value.toStringAsFixed(2)}';
+    return 'ETB ${value.toStringAsFixed(2)}';
   }
 
   /// Returns a short human-readable label for [type].

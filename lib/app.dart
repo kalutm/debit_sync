@@ -62,7 +62,7 @@ class _DebitSyncAppState extends ConsumerState<DebitSyncApp> {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'DebitSync',
+      title: 'Debit Sync',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

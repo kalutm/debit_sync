@@ -18,18 +18,12 @@ class ScaffoldWithNavbar extends StatelessWidget {
 
   // Ordered to match [_destinations] index positions.
   static const List<String> _tabs = [
-    AppRoutes.home,
     AppRoutes.ledger,
     AppRoutes.friends,
     AppRoutes.settings,
   ];
 
   static const List<NavigationDestination> _destinations = [
-    NavigationDestination(
-      icon: Icon(Icons.account_balance_wallet_outlined),
-      selectedIcon: Icon(Icons.account_balance_wallet),
-      label: 'Home',
-    ),
     NavigationDestination(
       icon: Icon(Icons.receipt_long_outlined),
       selectedIcon: Icon(Icons.receipt_long),

@@ -7,10 +7,10 @@ import '../providers/ledger_providers.dart';
 
 // ── Formatting helpers ─────────────────────────────────────────────────────────
 /// Formats an integer cent value as a currency string.
-/// e.g. 2550 → "\$25.50"
+/// e.g. 2550 → "ETB 25.50"
 String _formatAmount(int cents) {
   final value = cents / 100;
-  return '\$${value.toStringAsFixed(2)}';
+  return 'ETB ${value.toStringAsFixed(2)}';
 }
 
 /// Formats a [DateTime] as a short human-readable date.
@@ -78,6 +78,12 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
   bool get _showActions =>
       _tx.status == TransactionStatus.pending &&
       _tx.requestedFrom == _currentUid;
+
+  /// True when this is a pending request that the current user sent.
+  /// Shows a "Waiting for [Friend] to accept" message instead of action buttons.
+  bool get _isSentPending =>
+      _tx.status == TransactionStatus.pending &&
+      _tx.requestedBy == _currentUid;
 
   /// True when this is an accepted debit, the current user owes the money,
   /// and there is still an outstanding balance.
@@ -275,6 +281,22 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
                           ],
                         ),
                         const SizedBox(height: 12),
+                        // ── Explicit who-owes-whom ───────────────────
+                        if (_tx.status == TransactionStatus.accepted &&
+                            _tx.type == TransactionType.debit) ...[
+                          Text(
+                            _tx.requestedFrom == _currentUid
+                                ? 'I owe $counterpartyName ${_formatAmount(_tx.amount)}'
+                                : '$counterpartyName owes me ${_formatAmount(_tx.amount)}',
+                            style: tt.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: _tx.requestedFrom == _currentUid
+                                  ? cs.error
+                                  : cs.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
                         // ── Row 2: Amount + type + date ────────────────────
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -398,6 +420,48 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
                                   ),
                           ),
                         ],
+                        // ── Row 4b: Sent request — waiting for acceptance ──
+                        if (_isSentPending) ...[
+                          const SizedBox(height: 12),
+                          Divider(
+                            height: 1,
+                            color: cs.outlineVariant.withAlpha(80),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withAlpha(25),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.orange.withAlpha(60),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.hourglass_top_rounded,
+                                  size: 16,
+                                  color: Colors.orange.shade700,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Waiting for $counterpartyName to accept',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.orange.shade700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         // ── Row 5: Pay Back (accepted debits only) ─────────
                         if (_showPayback) ...[
                           const SizedBox(height: 12),
@@ -425,7 +489,7 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(double.infinity, 44),
                             ),
-                            child: const Text('Pay Back'),
+                            child: const Text('Pay Me Back'),
                           ),
                         ],
                       ],

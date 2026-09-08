@@ -15,7 +15,6 @@ import '../widgets/scaffold_with_navbar.dart';
 /// Named route constants to avoid magic strings at call sites.
 abstract final class AppRoutes {
   static const String login = '/login';
-  static const String home = '/home';
   static const String ledger = '/ledger';
   static const String friends = '/friends';
   static const String settings = '/settings';
@@ -49,7 +48,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (isLoggedIn && isOnLoginPage) {
         // Already authenticated → skip login and land on the ledger tab.
-        return AppRoutes.home;
+        return AppRoutes.ledger;
       }
 
       // No redirect needed.
@@ -67,13 +66,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => ScaffoldWithNavbar(child: child),
         routes: [
-          GoRoute(
-            path: AppRoutes.home,
-            name: 'home',
-            // Home tab renders the Ledger as the primary landing experience
-            // until a dedicated Home/Summary screen is built in a later iteration.
-            builder: (context, state) => const LedgerView(),
-          ),
           GoRoute(
             path: AppRoutes.ledger,
             name: 'ledger',

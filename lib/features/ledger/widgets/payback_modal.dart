@@ -82,7 +82,7 @@ class _PaybackModalState extends ConsumerState<PaybackModal> {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final remainingFormatted =
-        '\$${(widget.debit.remainingAmount / 100).toStringAsFixed(2)}';
+        'ETB ${(widget.debit.remainingAmount / 100).toStringAsFixed(2)}';
     return Padding(
       // Ensure padding accounts for keyboard if modal is set to isScrollControlled
       padding: EdgeInsets.only(
@@ -98,7 +98,7 @@ class _PaybackModalState extends ConsumerState<PaybackModal> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Pay Back',
+              'Pay Me Back',
               style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
@@ -124,8 +124,8 @@ class _PaybackModalState extends ConsumerState<PaybackModal> {
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: '0.00',
-                prefixText: '\$',
-                prefixStyle: tt.headlineMedium?.copyWith(
+                prefixText: 'ETB ',
+                prefixStyle: tt.titleLarge?.copyWith(
                   color: cs.primary,
                   fontWeight: FontWeight.w700,
                 ),

@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../ledger/providers/ledger_providers.dart';
-import '../../ledger/widgets/settle_up_modal.dart';
 import '../providers/friends_providers.dart';
 
 /// Displays the user's recent contacts and allows them to quickly
@@ -75,7 +74,9 @@ class FriendsView extends ConsumerWidget {
                       children: [
                         Text(friend.email),
                         Text(
-                          isOwed ? 'Owes you \$$amt' : 'You owe \$$amt',
+                          isOwed
+                              ? '${friend.name} owes me ETB $amt'
+                              : 'I owe ${friend.name} ETB $amt',
                           style: TextStyle(
                             color: isOwed ? cs.primary : cs.error,
                             fontWeight: FontWeight.w500,
@@ -102,40 +103,12 @@ class FriendsView extends ConsumerWidget {
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: subtitle,
-                    trailing: PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: cs.primary),
-                      onSelected: (value) {
-                        if (value == 'request') {
-                          context.push(
-                            '${AppRoutes.newDebit}?email=${friend.email}',
-                          );
-                        } else if (value == 'settle') {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(24),
-                              ),
-                            ),
-                            builder: (_) => SettleUpModal(
-                              friend: friend,
-                              balance: balance,
-                              currentUserUid: currentUser.uid,
-                            ),
-                          );
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'request',
-                          child: Text('Request Debit'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'settle',
-                          child: Text('Settle Up'),
-                        ),
-                      ],
+                    trailing: IconButton(
+                      icon: Icon(Icons.send_rounded, color: cs.primary),
+                      tooltip: 'Request Debit',
+                      onPressed: () => context.push(
+                        '${AppRoutes.newDebit}?email=${friend.email}',
+                      ),
                     ),
                   );
                 },

@@ -141,8 +141,8 @@ class _CreateDebitViewState extends ConsumerState<CreateDebitView> {
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         hintText: '0.00',
-                        prefixText: '\$',
-                        prefixStyle: tt.headlineMedium?.copyWith(
+                        prefixText: 'ETB ',
+                        prefixStyle: tt.titleLarge?.copyWith(
                           color: cs.primary,
                           fontWeight: FontWeight.w700,
                         ),

@@ -6,7 +6,9 @@ import '../../features/auth/providers/auth_providers.dart';
 import '../../features/auth/views/login_view.dart';
 import '../../features/friends/views/friends_view.dart';
 import '../../features/ledger/views/create_debit_view.dart';
-import '../../features/ledger/views/ledger_view.dart';
+import '../../features/ledger/views/friend_history_view.dart';
+import '../../features/ledger/views/history_view.dart';
+import '../../features/ledger/views/inbox_view.dart';
 import '../../features/settings/views/settings_view.dart';
 import '../widgets/scaffold_with_navbar.dart';
 
@@ -15,7 +17,8 @@ import '../widgets/scaffold_with_navbar.dart';
 /// Named route constants to avoid magic strings at call sites.
 abstract final class AppRoutes {
   static const String login = '/login';
-  static const String ledger = '/ledger';
+  static const String inbox = '/inbox';
+  static const String history = '/history';
   static const String friends = '/friends';
   static const String settings = '/settings';
   static const String newDebit = '/new-debit';
@@ -47,8 +50,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && isOnLoginPage) {
-        // Already authenticated → skip login and land on the ledger tab.
-        return AppRoutes.ledger;
+        // Already authenticated → skip login and land on the inbox tab.
+        return AppRoutes.inbox;
       }
 
       // No redirect needed.
@@ -67,9 +70,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => ScaffoldWithNavbar(child: child),
         routes: [
           GoRoute(
-            path: AppRoutes.ledger,
-            name: 'ledger',
-            builder: (context, state) => const LedgerView(),
+            path: AppRoutes.inbox,
+            name: 'inbox',
+            builder: (context, state) => const InboxView(),
+          ),
+          GoRoute(
+            path: AppRoutes.history,
+            name: 'history',
+            builder: (context, state) => const HistoryView(),
           ),
           GoRoute(
             path: AppRoutes.newDebit,
@@ -89,6 +97,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.friends,
             name: 'friends',
             builder: (context, state) => const FriendsView(),
+            routes: [
+              GoRoute(
+                path: ':friendUid',
+                name: 'friend_history',
+                builder: (context, state) => FriendHistoryView(
+                  friendUid: state.pathParameters['friendUid']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: AppRoutes.settings,

@@ -53,71 +53,79 @@ class FriendsView extends ConsumerWidget {
               ),
             );
           }
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: recents.length,
-            itemBuilder: (context, index) {
-              final friend = recents[index];
-              return Consumer(
-                builder: (context, ref, child) {
-                  final netBalanceAsync = ref.watch(
-                    netBalanceProvider(friend.friendUid),
-                  );
-                  final balance = netBalanceAsync.valueOrNull ?? 0;
-
-                  Widget subtitle = Text(friend.email);
-                  if (balance != 0) {
-                    final isOwed = balance > 0;
-                    final amt = (balance.abs() / 100).toStringAsFixed(2);
-                    subtitle = Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(friend.email),
-                        Text(
-                          isOwed
-                              ? '${friend.name} owes me ETB $amt'
-                              : 'I owe ${friend.name} ETB $amt',
-                          style: TextStyle(
-                            color: isOwed ? cs.primary : cs.error,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: cs.primaryContainer,
-                      child: Text(
-                        friend.name.isNotEmpty
-                            ? friend.name[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          color: cs.onPrimaryContainer,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      friend.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: subtitle,
-                    trailing: IconButton(
-                      icon: Icon(Icons.send_rounded, color: cs.primary),
-                      tooltip: 'Request Debit',
-                      onPressed: () => context.push(
-                        '${AppRoutes.newDebit}?email=${friend.email}',
-                      ),
-                    ),
-                  );
-                },
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(recentsStreamProvider(currentUser.uid));
+              await ref.read(
+                recentsStreamProvider(currentUser.uid).future,
               );
             },
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: recents.length,
+              itemBuilder: (context, index) {
+                final friend = recents[index];
+                return Consumer(
+                  builder: (context, ref, child) {
+                    final balance = ref.watch(
+                      netBalanceProvider(friend.friendUid),
+                    );
+
+                    Widget subtitle = Text(friend.email);
+                    if (balance != 0) {
+                      final isOwed = balance > 0;
+                      final amt = (balance.abs() / 100).toStringAsFixed(2);
+                      subtitle = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(friend.email),
+                          Text(
+                            isOwed
+                                ? '${friend.name} owes me ETB $amt'
+                                : 'I owe ${friend.name} ETB $amt',
+                            style: TextStyle(
+                              color: isOwed ? cs.primary : cs.error,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return ListTile(
+                      onTap: () => context.push('${AppRoutes.friends}/${friend.friendUid}'),
+                      leading: CircleAvatar(
+                        backgroundColor: cs.primaryContainer,
+                        child: Text(
+                          friend.name.isNotEmpty
+                              ? friend.name[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            color: cs.onPrimaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        friend.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: subtitle,
+                      trailing: IconButton(
+                        icon: Icon(Icons.send_rounded, color: cs.primary),
+                        tooltip: 'Request Debit',
+                        onPressed: () => context.push(
+                          '${AppRoutes.newDebit}?email=${friend.email}',
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: \$err')),
+        error: (err, _) => Center(child: Text('Error: $err')),
       ),
     );
   }

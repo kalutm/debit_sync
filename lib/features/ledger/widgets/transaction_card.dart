@@ -285,14 +285,18 @@ class _TransactionCardState extends ConsumerState<TransactionCard> {
                         if (_tx.status == TransactionStatus.accepted &&
                             _tx.type == TransactionType.debit) ...[
                           Text(
-                            _tx.requestedFrom == _currentUid
-                                ? '$counterpartyName owes me ${_formatAmount(_tx.amount)}'
-                                : 'I owe $counterpartyName ${_formatAmount(_tx.amount)}',
+                            _tx.remainingAmount == 0
+                                ? 'Fully Paid'
+                                : _tx.requestedFrom == _currentUid
+                                    ? '$counterpartyName owes me ${_formatAmount(_tx.remainingAmount)}'
+                                    : 'I owe $counterpartyName ${_formatAmount(_tx.remainingAmount)}',
                             style: tt.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: _tx.requestedFrom == _currentUid
-                                  ? cs.primary
-                                  : cs.error,
+                              color: _tx.remainingAmount == 0
+                                  ? cs.secondary
+                                  : _tx.requestedFrom == _currentUid
+                                      ? cs.primary
+                                      : cs.error,
                             ),
                           ),
                           const SizedBox(height: 8),

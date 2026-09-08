@@ -53,48 +53,38 @@ final pendingInboxProvider =
 /// Calculates the net balance between the current user and a specific friend.
 /// Positive = friend owes the current user.
 /// Negative = current user owes the friend.
-final netBalanceProvider = StreamProvider.family<int, String>((
-  ref,
-  friendUid,
-) async* {
+final netBalanceProvider = Provider.family<int, String>((ref, friendUid) {
   final currentUser = ref.watch(currentAppUserProvider).valueOrNull;
-  if (currentUser == null) {
-    yield 0;
-    return;
-  }
-  // Watch the user's transactions stream
-  final txStream = ref.watch(
-    userTransactionsStreamProvider(currentUser.uid).stream,
-  );
-  await for (final transactions in txStream) {
-    int balance = 0;
+  if (currentUser == null) return 0;
 
-    // Transactions are descending by createdAt. We need to process oldest to newest
-    // so that netSettlement correctly zeroes out the preceding balance.
-    final sortedTxs = transactions.toList().reversed;
-    for (final tx in sortedTxs) {
-      if (tx.status != TransactionStatus.accepted) continue;
+  final asyncTxs = ref.watch(userTransactionsStreamProvider(currentUser.uid));
+  final transactions = asyncTxs.valueOrNull ?? [];
 
-      final isCounterparty =
-          tx.requestedBy == friendUid || tx.requestedFrom == friendUid;
-      if (!isCounterparty) continue;
-      if (tx.type == TransactionType.netSettlement) {
-        balance = 0;
-      } else if (tx.type == TransactionType.debit) {
-        if (tx.requestedFrom == currentUser.uid) {
-          balance += tx.amount; // I am the Lender -> + amount
-        } else {
-          balance -= tx.amount; // I am the Borrower -> - amount
-        }
-      } else if (tx.type == TransactionType.payback) {
-        if (tx.requestedBy == currentUser.uid) {
-          balance += tx.amount; // I am the Borrower paying back -> + amount
-        } else {
-          balance -= tx.amount; // I am the Lender receiving -> - amount
-        }
+  int balance = 0;
+  final sortedTxs = transactions.toList().reversed;
+  for (final tx in sortedTxs) {
+    if (tx.status != TransactionStatus.accepted) continue;
+
+    final isCounterparty =
+        tx.requestedBy == friendUid || tx.requestedFrom == friendUid;
+    if (!isCounterparty) continue;
+
+    if (tx.type == TransactionType.netSettlement) {
+      balance = 0;
+    } else if (tx.type == TransactionType.debit) {
+      if (tx.requestedFrom == currentUser.uid) {
+        balance += tx.amount;
+      } else {
+        balance -= tx.amount;
+      }
+    } else if (tx.type == TransactionType.payback) {
+      if (tx.requestedBy == currentUser.uid) {
+        balance += tx.amount;
+      } else {
+        balance -= tx.amount;
       }
     }
-
-    yield balance;
   }
+
+  return balance;
 });

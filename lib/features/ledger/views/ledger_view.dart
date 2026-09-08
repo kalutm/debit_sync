@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,6 +92,11 @@ class _LedgerViewState extends ConsumerState<LedgerView>
             emptyTitle: 'All Clear',
             emptySubtitle:
                 "No pending requests right now.\nWhen a friend sends you a debit or payback, it'll show up here.",
+            onRefresh: () async {
+              ref.invalidate(pendingInboxProvider(uid));
+              // Wait a tick for the stream to re-emit.
+              await ref.read(pendingInboxProvider(uid).future);
+            },
           ),
           // History — all transactions for current user
           _TransactionListTab(
@@ -99,6 +106,10 @@ class _LedgerViewState extends ConsumerState<LedgerView>
             emptyTitle: 'Your Ledger is Clean',
             emptySubtitle:
                 'No transactions yet.\nTap  +  to record a new debit with a friend.',
+            onRefresh: () async {
+              ref.invalidate(userTransactionsStreamProvider(uid));
+              await ref.read(userTransactionsStreamProvider(uid).future);
+            },
           ),
         ],
       ),
@@ -173,12 +184,14 @@ class _TransactionListTab extends StatelessWidget {
     required this.emptyIcon,
     required this.emptyTitle,
     required this.emptySubtitle,
+    this.onRefresh,
   });
   final AsyncValue<List<TransactionModel>> asyncValue;
   final String currentUserUid;
   final IconData emptyIcon;
   final String emptyTitle;
   final String emptySubtitle;
+  final Future<void> Function()? onRefresh;
   @override
   Widget build(BuildContext context) {
     return asyncValue.when(
@@ -192,7 +205,7 @@ class _TransactionListTab extends StatelessWidget {
             subtitle: emptySubtitle,
           );
         }
-        return ListView.builder(
+        final list = ListView.builder(
           // Extra bottom padding so the last card clears the FAB.
           padding: const EdgeInsets.only(top: 8, bottom: 96),
           itemCount: transactions.length,
@@ -201,6 +214,13 @@ class _TransactionListTab extends StatelessWidget {
             currentUserUid: currentUserUid,
           ),
         );
+        if (onRefresh != null) {
+          return RefreshIndicator(
+            onRefresh: onRefresh!,
+            child: list,
+          );
+        }
+        return list;
       },
     );
   }

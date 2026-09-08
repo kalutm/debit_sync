@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../../features/auth/providers/auth_providers.dart';
+import '../../friends/providers/friends_providers.dart';
 import '../models/transaction_model.dart';
 import '../providers/ledger_providers.dart';
 
@@ -23,22 +24,13 @@ class CreateDebitView extends ConsumerStatefulWidget {
 class _CreateDebitViewState extends ConsumerState<CreateDebitView> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
-  final _emailController = TextEditingController();
+  TextEditingController? _autocompleteEmailController;
   final _notesController = TextEditingController();
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.initialEmail != null) {
-      _emailController.text = widget.initialEmail!;
-    }
-  }
-
-  @override
   void dispose() {
     _amountController.dispose();
-    _emailController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -52,13 +44,13 @@ class _CreateDebitViewState extends ConsumerState<CreateDebitView> {
     setState(() => _isLoading = true);
     try {
       // 1. Resolve counterparty UID
-      final email = _emailController.text.trim();
+      final email = _autocompleteEmailController?.text.trim() ?? '';
       final authRepo = ref.read(authRepositoryProvider);
 
       final counterpartyUid = await authRepo.findUidByEmail(email);
 
       if (counterpartyUid == null) {
-        throw Exception('No user found with email: \$email');
+        throw Exception('No user found with email: $email');
       }
 
       if (counterpartyUid == currentUser.uid) {
@@ -159,20 +151,40 @@ class _CreateDebitViewState extends ConsumerState<CreateDebitView> {
                     const SizedBox(height: 48),
 
                     // Counterparty Email Input
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      enabled: !_isLoading,
-                      decoration: const InputDecoration(
-                        labelText: "Friend's Email",
-                        prefixIcon: Icon(Icons.person_outline),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty)
-                          return 'Enter an email';
-                        if (!value.contains('@')) return 'Invalid email';
-                        return null;
+                    Autocomplete<String>(
+                      initialValue: TextEditingValue(text: widget.initialEmail ?? ''),
+                      optionsBuilder: (textEditingValue) {
+                        if (textEditingValue.text.isEmpty) {
+                          return const Iterable<String>.empty();
+                        }
+                        final currentUser = ref.read(currentAppUserProvider).valueOrNull;
+                        if (currentUser == null) return const Iterable<String>.empty();
+                        
+                        final recents = ref.read(recentsStreamProvider(currentUser.uid)).valueOrNull ?? [];
+                        return recents
+                            .map((r) => r.email)
+                            .where((email) => email.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                      },
+                      fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                        _autocompleteEmailController = textEditingController;
+                        return TextFormField(
+                          controller: textEditingController,
+                          focusNode: focusNode,
+                          keyboardType: TextInputType.emailAddress,
+                          enabled: !_isLoading,
+                          decoration: const InputDecoration(
+                            labelText: "Friend's Email",
+                            prefixIcon: Icon(Icons.person_outline),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty)
+                              return 'Enter an email';
+                            if (!value.contains('@')) return 'Invalid email';
+                            return null;
+                          },
+                          onFieldSubmitted: (_) => onFieldSubmitted(),
+                        );
                       },
                     ),
 

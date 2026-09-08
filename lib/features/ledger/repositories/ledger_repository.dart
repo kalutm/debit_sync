@@ -362,19 +362,47 @@ final class LedgerRepository {
               s.docs.map((d) => TransactionModel.fromJson(d.data())).toList(),
         );
 
-    // Combine both streams, merge deduplicating by ID, and re-sort.
-    return byStream.asyncExpand((byList) {
-      return fromStream.map((fromList) {
+    // Combine both streams reactively: each time EITHER sub-stream emits,
+    // re-merge with the latest snapshot from the other sub-stream.
+    // This avoids the broken asyncExpand pattern that lost inner reactivity.
+    return Stream.multi((controller) {
+      var latestBy = <TransactionModel>[];
+      var latestFrom = <TransactionModel>[];
+      var byReady = false;
+      var fromReady = false;
+
+      List<TransactionModel> _merge() {
         final seen = <String>{};
         final merged = <TransactionModel>[];
-
-        for (final tx in [...byList, ...fromList]) {
+        for (final tx in [...latestBy, ...latestFrom]) {
           if (seen.add(tx.id)) merged.add(tx);
         }
-
         merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         return merged;
-      });
+      }
+
+      final bySub = byStream.listen(
+        (list) {
+          latestBy = list;
+          byReady = true;
+          if (fromReady) controller.add(_merge());
+        },
+        onError: controller.addError,
+      );
+
+      final fromSub = fromStream.listen(
+        (list) {
+          latestFrom = list;
+          fromReady = true;
+          if (byReady) controller.add(_merge());
+        },
+        onError: controller.addError,
+      );
+
+      controller.onCancel = () {
+        bySub.cancel();
+        fromSub.cancel();
+      };
     });
   }
 

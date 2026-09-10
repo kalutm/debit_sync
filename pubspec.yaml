@@ -60,3 +60,5 @@ flutter:
     # Service account JSON + any future env files.
     # This entire directory is gitignored — never commit secrets.
     - assets/env/
+    - assets/google_logo.png
+    - assets/logo.png

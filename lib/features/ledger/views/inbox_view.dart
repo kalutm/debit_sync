@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../auth/providers/auth_providers.dart';
+import '../../../core/widgets/app_page_title.dart';
 import '../providers/ledger_providers.dart';
 import '../widgets/transaction_list_tab.dart';
 
@@ -23,8 +24,9 @@ class InboxView extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Inbox', style: TextStyle(fontWeight: FontWeight.w700)),
+            const AppPageTitle('Requests'),
             if (pendingCount > 0) ...[
               const SizedBox(width: 8),
               _CountBadge(count: pendingCount),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/providers/auth_providers.dart';
+import '../../../core/widgets/app_page_title.dart';
 import '../models/transaction_model.dart';
 import '../providers/ledger_providers.dart';
 import '../widgets/transaction_card.dart';
@@ -38,7 +39,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const AppPageTitle('Ledger'),
         scrolledUnderElevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(116),
@@ -68,7 +69,8 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   ),
-                  onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+                  onChanged: (val) =>
+                      setState(() => _searchQuery = val.toLowerCase()),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
@@ -79,25 +81,32 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
                       _FilterChip(
                         label: 'All',
                         isSelected: _selectedFilter == _FilterOption.all,
-                        onSelected: (_) => setState(() => _selectedFilter = _FilterOption.all),
+                        onSelected: (_) =>
+                            setState(() => _selectedFilter = _FilterOption.all),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
                         label: 'Lended',
                         isSelected: _selectedFilter == _FilterOption.lended,
-                        onSelected: (_) => setState(() => _selectedFilter = _FilterOption.lended),
+                        onSelected: (_) => setState(
+                          () => _selectedFilter = _FilterOption.lended,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
                         label: 'Borrowed',
                         isSelected: _selectedFilter == _FilterOption.borrowed,
-                        onSelected: (_) => setState(() => _selectedFilter = _FilterOption.borrowed),
+                        onSelected: (_) => setState(
+                          () => _selectedFilter = _FilterOption.borrowed,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
                         label: 'Payback',
                         isSelected: _selectedFilter == _FilterOption.payback,
-                        onSelected: (_) => setState(() => _selectedFilter = _FilterOption.payback),
+                        onSelected: (_) => setState(
+                          () => _selectedFilter = _FilterOption.payback,
+                        ),
                       ),
                     ],
                   ),
@@ -120,25 +129,30 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
                 matchesFilter = true;
                 break;
               case _FilterOption.lended:
-                matchesFilter = tx.type == TransactionType.debit && tx.requestedFrom == uid;
+                matchesFilter =
+                    tx.type == TransactionType.debit && tx.requestedFrom == uid;
                 break;
               case _FilterOption.borrowed:
-                matchesFilter = tx.type == TransactionType.debit && tx.requestedBy == uid;
+                matchesFilter =
+                    tx.type == TransactionType.debit && tx.requestedBy == uid;
                 break;
               case _FilterOption.payback:
                 matchesFilter = tx.type == TransactionType.payback;
                 break;
             }
-            
+
             if (!matchesFilter) return false;
 
             if (_searchQuery.isNotEmpty) {
               final amountStr = (tx.amount / 100).toStringAsFixed(2);
               final rawAmountStr = tx.amount.toString();
-              
-              final notesMatch = tx.notes?.toLowerCase().contains(_searchQuery) ?? false;
-              final amountMatch = amountStr.contains(_searchQuery) || rawAmountStr.contains(_searchQuery);
-              
+
+              final notesMatch =
+                  tx.notes?.toLowerCase().contains(_searchQuery) ?? false;
+              final amountMatch =
+                  amountStr.contains(_searchQuery) ||
+                  rawAmountStr.contains(_searchQuery);
+
               if (!notesMatch && !amountMatch) return false;
             }
 
@@ -148,7 +162,9 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
           if (filtered.isEmpty) {
             return Center(
               child: Text(
-                transactions.isEmpty ? 'Your ledger is clean' : 'No matching transactions',
+                transactions.isEmpty
+                    ? 'Your ledger is clean'
+                    : 'No matching transactions',
                 style: TextStyle(color: cs.outline),
               ),
             );

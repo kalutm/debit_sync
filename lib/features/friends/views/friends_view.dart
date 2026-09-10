@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
+import '../../../core/widgets/app_page_title.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../ledger/providers/ledger_providers.dart';
 import '../providers/friends_providers.dart';
@@ -22,7 +23,7 @@ class FriendsView extends ConsumerWidget {
     }
     final recentsAsync = ref.watch(recentsStreamProvider(currentUser.uid));
     return Scaffold(
-      appBar: AppBar(title: const Text('Recent Friends')),
+      appBar: AppBar(title: const AppPageTitle('Contacts')),
       body: recentsAsync.when(
         data: (recents) {
           if (recents.isEmpty) {
@@ -56,9 +57,7 @@ class FriendsView extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(recentsStreamProvider(currentUser.uid));
-              await ref.read(
-                recentsStreamProvider(currentUser.uid).future,
-              );
+              await ref.read(recentsStreamProvider(currentUser.uid).future);
             },
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -92,7 +91,9 @@ class FriendsView extends ConsumerWidget {
                       );
                     }
                     return ListTile(
-                      onTap: () => context.push('${AppRoutes.friends}/${friend.friendUid}'),
+                      onTap: () => context.push(
+                        '${AppRoutes.friends}/${friend.friendUid}',
+                      ),
                       leading: CircleAvatar(
                         backgroundColor: cs.primaryContainer,
                         child: Text(

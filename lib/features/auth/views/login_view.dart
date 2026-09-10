@@ -140,17 +140,17 @@ class _LoginViewState extends ConsumerState<LoginView>
   /// Converts a [FirebaseAuthException] code into a human-readable message.
   String _friendlyAuthMessage(FirebaseAuthException e) {
     return switch (e.code) {
-      'invalid-email'           => 'That email address is not valid.',
-      'user-disabled'           => 'This account has been disabled.',
-      'user-not-found'          => 'No account found for this email.',
-      'wrong-password'          => 'Incorrect password. Please try again.',
-      'invalid-credential'      => 'Incorrect email or password.',
-      'email-already-in-use'    => 'An account already exists for this email.',
-      'weak-password'           => 'Password must be at least 6 characters.',
-      'operation-not-allowed'   => 'This sign-in method is not enabled.',
-      'too-many-requests'       => 'Too many attempts. Please wait and try again.',
-      'network-request-failed'  => 'No internet connection.',
-      _                         => e.message ?? 'Authentication failed.',
+      'invalid-email' => 'That email address is not valid.',
+      'user-disabled' => 'This account has been disabled.',
+      'user-not-found' => 'No account found for this email.',
+      'wrong-password' => 'Incorrect password. Please try again.',
+      'invalid-credential' => 'Incorrect email or password.',
+      'email-already-in-use' => 'An account already exists for this email.',
+      'weak-password' => 'Password must be at least 6 characters.',
+      'operation-not-allowed' => 'This sign-in method is not enabled.',
+      'too-many-requests' => 'Too many attempts. Please wait and try again.',
+      'network-request-failed' => 'No internet connection.',
+      _ => e.message ?? 'Authentication failed.',
     };
   }
 
@@ -188,13 +188,16 @@ class _LoginViewState extends ConsumerState<LoginView>
       body: Stack(
         children: [
           // ── Background gradient ──────────────────────────────────────────────
-          _GradientBackground(colorScheme: colorScheme),
+          _SolidBackground(colorScheme: colorScheme),
 
           // ── Scrollable content ───────────────────────────────────────────────
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 440),
                   child: Column(
@@ -279,7 +282,7 @@ class _LoginViewState extends ConsumerState<LoginView>
                                 textInputAction: TextInputAction.next,
                                 autocorrect: false,
                                 decoration: _inputDecoration(
-                                  hint: 'you@example.com',
+                                  hint: 'Your email',
                                   icon: Icons.email_outlined,
                                   colorScheme: colorScheme,
                                 ),
@@ -299,26 +302,27 @@ class _LoginViewState extends ConsumerState<LoginView>
                                 obscureText: _obscurePassword,
                                 textInputAction: TextInputAction.done,
                                 onFieldSubmitted: (_) => _handleEmailAuth(),
-                                decoration: _inputDecoration(
-                                  hint: isSignUp
-                                      ? 'Min. 6 characters'
-                                      : 'Your password',
-                                  icon: Icons.lock_outline,
-                                  colorScheme: colorScheme,
-                                ).copyWith(
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      color: colorScheme.outline,
+                                decoration:
+                                    _inputDecoration(
+                                      hint: isSignUp
+                                          ? 'Min. 6 characters'
+                                          : 'Your password',
+                                      icon: Icons.lock_outline,
+                                      colorScheme: colorScheme,
+                                    ).copyWith(
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
+                                          color: colorScheme.outline,
+                                        ),
+                                        onPressed: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
+                                        ),
+                                      ),
                                     ),
-                                    onPressed: () => setState(
-                                      () => _obscurePassword =
-                                          !_obscurePassword,
-                                    ),
-                                  ),
-                                ),
                                 validator: _validatePassword,
                               ),
                               const SizedBox(height: 28),
@@ -376,8 +380,7 @@ class _LoginViewState extends ConsumerState<LoginView>
     return InputDecoration(
       hintText: hint,
       prefixIcon: Icon(icon, color: colorScheme.primary.withAlpha(180)),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }
@@ -386,8 +389,8 @@ class _LoginViewState extends ConsumerState<LoginView>
 // Broken into private widgets to keep build() readable and to enable
 // fine-grained rebuilds.
 
-class _GradientBackground extends StatelessWidget {
-  const _GradientBackground({required this.colorScheme});
+class _SolidBackground extends StatelessWidget {
+  const _SolidBackground({required this.colorScheme});
 
   final ColorScheme colorScheme;
 
@@ -396,21 +399,11 @@ class _GradientBackground extends StatelessWidget {
     final isDark = colorScheme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  const Color(0xFF0A0E21),
-                  const Color(0xFF1A1F3C),
-                  const Color(0xFF0D1117),
-                ]
-              : [
-                  const Color(0xFFEEF0FF),
-                  const Color(0xFFF8F9FF),
-                  const Color(0xFFE8EEFF),
-                ],
-          stops: const [0.0, 0.5, 1.0],
+        color: isDark
+            ? colorScheme.surface
+            : colorScheme.surfaceContainerLowest,
+        border: Border.all(
+          color: colorScheme.outlineVariant.withAlpha(isDark ? 50 : 30),
         ),
       ),
     );
@@ -418,10 +411,7 @@ class _GradientBackground extends StatelessWidget {
 }
 
 class _AppHeader extends StatelessWidget {
-  const _AppHeader({
-    required this.colorScheme,
-    required this.textTheme,
-  });
+  const _AppHeader({required this.colorScheme, required this.textTheme});
 
   final ColorScheme colorScheme;
   final TextTheme textTheme;
@@ -435,28 +425,20 @@ class _AppHeader extends StatelessWidget {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.primary,
-                colorScheme.primary.withAlpha(180),
-              ],
-            ),
+            color: colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: colorScheme.outlineVariant.withAlpha(80)),
             boxShadow: [
               BoxShadow(
-                color: colorScheme.primary.withAlpha(80),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
+                color: Colors.black.withAlpha(
+                  colorScheme.brightness == Brightness.dark ? 55 : 10,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
-          child: const Icon(
-            Icons.account_balance_wallet_rounded,
-            color: Colors.white,
-            size: 40,
-          ),
+          child: Image.asset('assets/logo.png', width: 20.0, height: 20),
         ),
         const SizedBox(height: 20),
         Text(
@@ -523,9 +505,9 @@ class _FieldLabel extends StatelessWidget {
     return Text(
       label,
       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
+        color: colorScheme.onSurface,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
@@ -547,22 +529,20 @@ class _PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+    final buttonColor = isDisabled || isLoading
+        ? colorScheme.primary.withAlpha(140)
+        : colorScheme.primary;
+
+    return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colorScheme.primary,
-            Color.lerp(colorScheme.primary, colorScheme.secondary, 0.4)!,
-          ],
-        ),
+        color: buttonColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: isDisabled || isLoading
             ? []
             : [
                 BoxShadow(
-                  color: colorScheme.primary.withAlpha(70),
-                  blurRadius: 16,
+                  color: Colors.black.withAlpha(12),
+                  blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -615,27 +595,21 @@ class _OrDivider extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Divider(
-            color: colorScheme.outlineVariant,
-            thickness: 1,
-          ),
+          child: Divider(color: colorScheme.outlineVariant, thickness: 1),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             'OR',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: colorScheme.outline,
-                  letterSpacing: 1.5,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: colorScheme.outline,
+              letterSpacing: 1.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         Expanded(
-          child: Divider(
-            color: colorScheme.outlineVariant,
-            thickness: 1,
-          ),
+          child: Divider(color: colorScheme.outlineVariant, thickness: 1),
         ),
       ],
     );
@@ -661,13 +635,8 @@ class _GoogleButton extends StatelessWidget {
       onPressed: (isLoading || isDisabled) ? null : onPressed,
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        side: BorderSide(
-          color: colorScheme.outlineVariant,
-          width: 1.5,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: BorderSide(color: colorScheme.outlineVariant, width: 1.5),
       ),
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
@@ -686,24 +655,7 @@ class _GoogleButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Google "G" mark — coloured circle with bold G
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF4285F4),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'G',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        height: 1,
-                      ),
-                    ),
-                  ),
+                  Image.asset('assets/google_logo.png', height: 20.0),
                   const SizedBox(width: 12),
                   Text(
                     'Continue with Google',

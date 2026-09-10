@@ -28,22 +28,22 @@ class ScaffoldWithNavbar extends StatelessWidget {
     NavigationDestination(
       icon: Icon(Icons.inbox_outlined),
       selectedIcon: Icon(Icons.inbox),
-      label: 'Inbox',
+      label: 'Requests',
     ),
     NavigationDestination(
       icon: Icon(Icons.receipt_long_outlined),
       selectedIcon: Icon(Icons.receipt_long),
-      label: 'History',
+      label: 'Ledger',
     ),
     NavigationDestination(
       icon: Icon(Icons.people_outline),
       selectedIcon: Icon(Icons.people),
-      label: 'Friends',
+      label: 'Contacts',
     ),
     NavigationDestination(
       icon: Icon(Icons.settings_outlined),
       selectedIcon: Icon(Icons.settings),
-      label: 'Settings',
+      label: 'Account',
     ),
   ];
 
@@ -62,8 +62,7 @@ class ScaffoldWithNavbar extends StatelessWidget {
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
-        onDestinationSelected: (index) =>
-            context.go(_tabs[index]),
+        onDestinationSelected: (index) => context.go(_tabs[index]),
         destinations: _destinations,
         animationDuration: const Duration(milliseconds: 300),
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/app_page_title.dart';
 import '../../auth/providers/auth_providers.dart';
 
 /// Placeholder for the Settings screen.
@@ -17,21 +18,14 @@ class SettingsView extends ConsumerWidget {
     final currentUser = ref.watch(currentAppUserProvider).valueOrNull;
 
     return Scaffold(
+      appBar: AppBar(title: const AppPageTitle('Account')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
-              Text(
-                'Settings',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 8),
 
               // ── User info card ─────────────────────────────────────────────
               if (currentUser != null) ...[
